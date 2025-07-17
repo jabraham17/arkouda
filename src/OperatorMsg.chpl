@@ -806,17 +806,13 @@ module OperatorMsg
 
         if binop_dtype_a == int && binop_dtype_b == int  {
             select op {
-                when "+=" { l.a += val; }
-                when "-=" { l.a -= val; }
-                when "*=" { l.a *= val; }
+                when "+="  { l.a += val; }
+                when "-="  { l.a -= val; }
+                when "*="  { l.a *= val; }
                 when ">>=" { l.a >>= val; }
                 when "<<=" { l.a <<= val; }
-                when "//=" {
-                    if val != 0 {l.a /= val;} else {l.a = 0;}
-                }//floordiv
-                when "%=" {
-                    if val != 0 {l.a %= val;} else {l.a = 0;}
-                }
+                when "//=" { l.a = doIntegralFloorDivOp(l.a, val); }//floordiv
+                when "%="  { l.a = doIntegralModOp(l.a, val); }
                 when "**=" {
                     if val<0 {
                         var errorMsg = "Attempt to exponentiate base of type int64 to negative exponent";
@@ -856,20 +852,12 @@ module OperatorMsg
         }
         else if binop_dtype_a == uint && binop_dtype_b == uint  {
             select op {
-                when "+=" { l.a += val; }
-                when "-=" {
-                    l.a -= val;
-                }
-                when "*=" { l.a *= val; }
-                when "//=" {
-                    if val != 0 {l.a /= val;} else {l.a = 0;}
-                }//floordiv
-                when "%=" {
-                    if val != 0 {l.a %= val;} else {l.a = 0;}
-                }
-                when "**=" {
-                    l.a **= val;
-                }
+                when "+="  { l.a += val; }
+                when "-="  { l.a -= val; }
+                when "*="  { l.a *= val; }
+                when "//=" { l.a = doIntegralFloorDivOp(l.a, val); }//floordiv
+                when "%="  { l.a = doIntegralModOp(l.a, val); }
+                when "**=" { l.a **= val; }
                 when ">>=" { l.a >>= val; }
                 when "<<=" { l.a <<= val; }
                 otherwise do return MsgTuple.error(nie);
