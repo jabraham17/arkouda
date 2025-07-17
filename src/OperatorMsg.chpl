@@ -469,15 +469,17 @@ module OperatorMsg
                 when "*=" {l.a *= r.a;}
                 when "/=" {l.a /= r.a:real;} //truediv
                 when "//=" { //floordiv
-                    ref la = l.a;
-                    ref ra = r.a;
-                    [(li,ri) in zip(la,ra)] li = floorDivisionHelper(li, ri);
+                    l.a = floorDivisionHelper(l.a, r.a);
+                    // ref la = l.a;
+                    // ref ra = r.a;
+                    // [(li,ri) in zip(la,ra)] li = floorDivisionHelper(li, ri);
                 }
                 when "**=" { l.a **= r.a; }
                 when "%=" {
-                    ref la = l.a;
-                    ref ra = r.a;
-                    [(li,ri) in zip(la,ra)] li = modHelper(li, ri);
+                    l.a = modHelper(l.a, r.a);
+                    // ref la = l.a;
+                    // ref ra = r.a;
+                    // [(li,ri) in zip(la,ra)] li = modHelper(li, ri);
                 }
                 otherwise do return MsgTuple.error(nie);
             }
@@ -489,15 +491,17 @@ module OperatorMsg
                 when "*=" {l.a *= r.a;}
                 when "/=" {l.a /= r.a:real;} //truediv
                 when "//=" { //floordiv
-                    ref la = l.a;
-                    ref ra = r.a;
-                    [(li,ri) in zip(la,ra)] li = floorDivisionHelper(li, ri);
+                    l.a = floorDivisionHelper(l.a, r.a);
+                    // ref la = l.a;
+                    // ref ra = r.a;
+                    // [(li,ri) in zip(la,ra)] li = floorDivisionHelper(li, ri);
                 }
                 when "**=" { l.a **= r.a; }
                 when "%=" {
-                    ref la = l.a;
-                    ref ra = r.a;
-                    [(li,ri) in zip(la,ra)] li = modHelper(li, ri);
+                    l.a = modHelper(l.a, r.a);
+                    // ref la = l.a;
+                    // ref ra = r.a;
+                    // [(li,ri) in zip(la,ra)] li = modHelper(li, ri);
                 }
                 otherwise do return MsgTuple.error(nie);
             }
@@ -509,15 +513,17 @@ module OperatorMsg
                 when "*=" {l.a *= r.a;}
                 when "/=" {l.a /= r.a;}//truediv
                 when "//=" { //floordiv
-                    ref la = l.a;
-                    ref ra = r.a;
-                    [(li,ri) in zip(la,ra)] li = floorDivisionHelper(li, ri);
+                    l.a  = floorDivisionHelper(l.a, r.a);
+                    // ref la = l.a;
+                    // ref ra = r.a;
+                    // [(li,ri) in zip(la,ra)] li = floorDivisionHelper(li, ri);
                 }
                 when "**=" { l.a **= r.a; }
                 when "%=" {
-                    ref la = l.a;
-                    ref ra = r.a;
-                    [(li,ri) in zip(la,ra)] li = modHelper(li, ri);
+                    l.a = modHelper(l.a, r.a);
+                    // ref la = l.a;
+                    // ref ra = r.a;
+                    // [(li,ri) in zip(la,ra)] li = modHelper(li, ri);
                 }
                 otherwise do return MsgTuple.error(nie);
             }
@@ -946,13 +952,15 @@ module OperatorMsg
                 when "*=" {l.a *= val;}
                 when "/=" {l.a /= val:real;} //truediv
                 when "//=" { //floordiv
-                    ref la = l.a;
-                    [li in la] li = floorDivisionHelper(li, val);
+                    l.a = floorDivisionHelper(l.a, val);
+                    // ref la = l.a;
+                    // [li in la] li = floorDivisionHelper(li, val);
                 }
                 when "**=" { l.a **= val; }
                 when "%=" {
-                    ref la = l.a;
-                    [li in la] li = modHelper(li, val);
+                    l.a = modHelper(l.a, val);
+                    // ref la = l.a;
+                    // [li in la] li = modHelper(li, val);
                 }
                 otherwise do return MsgTuple.error(nie);
             }
@@ -963,15 +971,17 @@ module OperatorMsg
                 when "-=" { l.a -= val; }
                 when "*=" { l.a *= val; }
                 when "//=" {
-                    ref la = l.a;
-                    [li in la] li = floorDivisionHelper(li, val);
+                    l.a = floorDivisionHelper(l.a, val);
+                    // ref la = l.a;
+                    // [li in la] li = floorDivisionHelper(li, val);
                 }//floordiv
                 when "**=" {
                     l.a **= val;
                 }
                 when "%=" {
-                    ref la = l.a;
-                    [li in la] li = modHelper(li, val);
+                    l.a = modHelper(l.a, val);
+                    // ref la = l.a;
+                    // [li in la] li = modHelper(li, val);
                 }
                 otherwise do return MsgTuple.error(nie);
             }
@@ -983,13 +993,15 @@ module OperatorMsg
                 when "*=" {l.a *= val;}
                 when "/=" {l.a /= val;}//truediv
                 when "//=" { //floordiv
-                    ref la = l.a;
-                    [li in la] li = floorDivisionHelper(li, val);
+                    l.a = floorDivisionHelper(l.a, val);
+                    // ref la = l.a;
+                    // [li in la] li = floorDivisionHelper(li, val);
                 }
                 when "**=" { l.a **= val; }
                 when "%=" {
-                    ref la = l.a;
-                    [li in la] li = modHelper(li, val);
+                    l.a = modHelper(l.a, val);
+                    // ref la = l.a;
+                    // [li in la] li = modHelper(li, val);
                 }
                 otherwise do return MsgTuple.error(nie);
             }

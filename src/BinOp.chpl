@@ -97,7 +97,7 @@ module BinOp
   /*
     Helper function to ensure that floor division cases are handled in accordance with numpy
   */
-  inline proc floorDivisionHelper(numerator: ?t, denom: ?t2): real {
+  inline proc floorDivisionHelper(numerator: real, denom: real): real {
     if (numerator == 0 && denom == 0) || (isInf(numerator) && (denom != 0 || isInf(denom))){
       return nan;
     }
@@ -108,18 +108,17 @@ module BinOp
       return floor(numerator/denom);
     }
   }
-
   /*
     Helper function to ensure that mod cases are handled in accordance with numpy
   */
-  inline proc modHelper(dividend: ?t, divisor: ?t2): real {
+  inline proc modHelper(dividend: real, divisor: real): real {
     extern proc fmod(x: real, y: real): real;
 
     var res = fmod(dividend, divisor);
     // to convert fmod (truncated) results into mod (floored) results
-    // when the dividend and divsor have opposite signs,
-    // we add the divsor into the result
-    // except for when res == 0 (divsor even divides dividend)
+    // when the dividend and divisor have opposite signs,
+    // we add the divisor into the result
+    // except for when res == 0 (divisor even divides dividend)
     // see https://en.wikipedia.org/wiki/Modulo#math_1 for more information
     if res != 0 && (((dividend < 0) && (divisor > 0)) || ((dividend > 0) && (divisor < 0))) {
       // we do + either way because we want to shift up for positive divisors and shift down for negative
@@ -251,16 +250,18 @@ module BinOp
         when "-" { e = (l.a: etype - r.a: etype): etype; }
         when "/" { e = (l.a: etype / r.a: etype): etype; }
         when "%" {
-          ref ea = e;
-          ref la = l.a;
-          ref ra = r.a;
-          [(ei,li,ri) in zip(ea,la,ra)] ei = modHelper(li: etype, ri: etype): etype;
+          // ref ea = e;
+          // ref la = l.a;
+          // ref ra = r.a;
+          // [(ei,li,ri) in zip(ea,la,ra)] ei = modHelper(li: etype, ri: etype): etype;
+          e = modHelper(l.a: etype, r.a: etype): etype;
         }
         when "//" {
-          ref ea = e;
-          ref la = l.a;
-          ref ra = r.a;
-          [(ei,li,ri) in zip(ea,la,ra)] ei = floorDivisionHelper(li: etype, ri: etype): etype;
+          // ref ea = e;
+          // ref la = l.a;
+          // ref ra = r.a;
+          // [(ei,li,ri) in zip(ea,la,ra)] ei = floorDivisionHelper(li: etype, ri: etype): etype;
+          e = floorDivisionHelper(l.a: etype, r.a: etype): etype;
         }
         when "**" {
           e = ((l.a: etype) ** (r.a: etype)): etype;
@@ -390,14 +391,16 @@ module BinOp
         when "-" { e = (l.a: etype - val: etype): etype; }
         when "/" { e = (l.a: etype / val: etype): etype; }
         when "%" {
-          ref ea = e;
-          ref la = l.a;
-          [(ei,li) in zip(ea,la)] ei = modHelper(li: etype, val: etype): etype;
+          // ref ea = e;
+          // ref la = l.a;
+          // [(ei,li) in zip(ea,la)] ei = modHelper(li: etype, val: etype): etype;
+          e = modHelper(l.a: etype, val: etype): etype;
         }
         when "//" {
-          ref ea = e;
-          ref la = l.a;
-          [(ei,li) in zip(ea,la)] ei = floorDivisionHelper(li: etype, val: etype): etype;
+          // ref ea = e;
+          // ref la = l.a;
+          // [(ei,li) in zip(ea,la)] ei = floorDivisionHelper(li: etype, val: etype): etype;
+          e = floorDivisionHelper(l.a: etype, val: etype): etype;
         }
         when "**" {
           e = ((l.a: etype) ** (val: etype)): etype;
@@ -521,14 +524,16 @@ module BinOp
         when "-" { e = (val: etype - r.a: etype): etype; }
         when "/" { e = (val: etype / r.a: etype): etype; }
         when "%" {
-          ref ea = e;
-          ref ra = r.a;
-          [(ei,ri) in zip(ea,ra)] ei = modHelper(val: etype, ri: etype): etype;
+          // ref ea = e;
+          // ref ra = r.a;
+          // [(ei,ri) in zip(ea,ra)] ei = modHelper(val: etype, ri: etype): etype;
+          e = modHelper(val: etype, r.a: etype): etype;
         }
         when "//" {
-          ref ea = e;
-          ref ra = r.a;
-          [(ei,ri) in zip(ea,ra)] ei = floorDivisionHelper(val: etype, ri: etype): etype;
+          // ref ea = e;
+          // ref ra = r.a;
+          // [(ei,ri) in zip(ea,ra)] ei = floorDivisionHelper(val: etype, ri: etype): etype;
+          e = floorDivisionHelper(val: etype, r.a: etype): etype;
         }
         when "**" {
           e = ((val: etype) ** (r.a: etype)): etype;
