@@ -128,6 +128,22 @@ module BinOp
   }
 
 
+  // TODO: can I outlaw bools here?
+  inline proc doIntegralModOp(l: integral, r: integral) do
+    return if r != 0 then l%r else 0;
+  inline proc doIntegralModOp(l: integral, r: bool) do
+    return if r != 0 then l%r else 0;
+  inline proc doIntegralModOp(l: bool, r: integral) do
+    return if r != 0 then l%r else 0;
+
+  // TODO: can I outlaw bools here?
+  inline proc doIntegralFloorDivOp(l: integral, r: integral) do
+    return if r != 0 then l/r else 0;
+  inline proc doIntegralFloorDivOp(l: integral, r: bool) do
+    return if r != 0 then l/r else 0;
+  inline proc doIntegralFloorDivOp(l: bool, r: integral) do
+    return if r != 0 then l/r else 0;
+
   proc doBoolBoolBitOp(
     op:string, ref e: [] bool, l: [] bool, r /*: [] bool OR bool*/
   ): bool {
@@ -264,18 +280,8 @@ module BinOp
         select op {
           when "-" { e = (l.a - r.a): etype; }
           when "/" { e = (l.a: etype) / (r.a: etype); }
-          when "%" {
-            ref ea = e;
-            ref la = l.a;
-            ref ra = r.a;
-            [(ei,li,ri) in zip(ea,la,ra)] ei = if ri != 0 then li%ri else 0;
-          }
-          when "//" {
-            ref ea = e;
-            ref la = l.a;
-            ref ra = r.a;
-            [(ei,li,ri) in zip(ea,la,ra)] ei = if ri != 0 then (li/ri): etype else 0: etype;
-          }
+          when "%" { e = doIntegralModOp(l.a, r.a): etype; }
+          when "//" { e = doIntegralFloorDivOp(l.a, r.a): etype; }
           when "**" {
             if || reduce (r.a<0)
               then return MsgTuple.error("Attempt to exponentiate base of type Int or UInt to negative exponent");
@@ -391,16 +397,8 @@ module BinOp
         select op {
           when "-" { e = (l.a - val): etype; }
           when "/" { e = (l.a: etype) / (val: etype); }
-          when "%" {
-            ref ea = e;
-            ref la = l.a;
-            [(ei,li) in zip(ea,la)] ei = if val != 0 then li%val else 0;
-          }
-          when "//" {
-            ref ea = e;
-            ref la = l.a;
-            [(ei,li) in zip(ea,la)] ei = if val != 0 then (li/val): etype else 0: etype;
-          }
+          when "%" { e = doIntegralModOp(l.a, val): etype; }
+          when "//" { e = doIntegralFloorDivOp(l.a, val): etype; }
           when "**" {
             if val < 0
               then return MsgTuple.error("Attempt to exponentiate base of type Int or UInt to negative exponent");
@@ -508,19 +506,13 @@ module BinOp
 
     else {
       if !doUnorderedOp(etype, op, e, r.a, val:etype) {
+        // TODO: right now /, %, //, **,  will get stamped out for bools
+        // but not /=, %=, //=, **=. Should we rule out bools here?
         select op {
           when "-" { e = (val - r.a): etype; }
           when "/" { e = (val: etype) / (r.a: etype); }
-          when "%" {
-            ref ea = e;
-            ref ra = r.a;
-            [(ei,ri) in zip(ea,ra)] ei = if ri != 0 then val%ri else 0;
-          }
-          when "//" {
-            ref ea = e;
-            ref ra = r.a;
-            [(ei,ri) in zip(ea,ra)] ei = if ri != 0 then (val/ri): etype else 0: etype;
-          }
+          when "%" { e = doIntegralModOp(val, r.a): etype; }
+          when "//" { e = doIntegralFloorDivOp(val, r.a): etype; }
           when "**" {
             if || reduce (r.a<0)
               then return MsgTuple.error("Attempt to exponentiate base of type Int or UInt to negative exponent");

@@ -388,23 +388,13 @@ module OperatorMsg
 
         if binop_dtype_a == int && binop_dtype_b == int  {
             select op {
-                when "+=" { l.a += r.a; }
-                when "-=" { l.a -= r.a; }
-                when "*=" { l.a *= r.a; }
-                when ">>=" { l.a >>= r.a;}
-                when "<<=" { l.a <<= r.a;}
-                when "//=" {
-                    //l.a /= r.a;
-                    ref la = l.a;
-                    ref ra = r.a;
-                    [(li,ri) in zip(la,ra)] li = if ri != 0 then li/ri else 0;
-                }//floordiv
-                when "%=" {
-                    //l.a /= r.a;
-                    ref la = l.a;
-                    ref ra = r.a;
-                    [(li,ri) in zip(la,ra)] li = if ri != 0 then li%ri else 0;
-                }
+                when "+="  { l.a += r.a; }
+                when "-="  { l.a -= r.a; }
+                when "*="  { l.a *= r.a; }
+                when ">>=" { l.a >>= r.a; }
+                when "<<=" { l.a <<= r.a; }
+                when "//=" { l.a = doIntegralFloorDivOp(l.a, r.a);}//floordiv
+                when "%="  { l.a = doIntegralModOp(l.a, r.a); }
                 when "**=" {
                     if || reduce (r.a<0){
                         var errorMsg =  "Attempt to exponentiate base of type Int64 to negative exponent";
@@ -427,28 +417,14 @@ module OperatorMsg
         }
         else if binop_dtype_a == uint && binop_dtype_b == uint  {
             select op {
-                when "+=" { l.a += r.a; }
-                when "-=" {
-                    l.a -= r.a;
-                }
-                when "*=" { l.a *= r.a; }
-                when "//=" {
-                    //l.a /= r.a;
-                    ref la = l.a;
-                    ref ra = r.a;
-                    [(li,ri) in zip(la,ra)] li = if ri != 0 then li/ri else 0;
-                }//floordiv
-                when "%=" {
-                    //l.a /= r.a;
-                    ref la = l.a;
-                    ref ra = r.a;
-                    [(li,ri) in zip(la,ra)] li = if ri != 0 then li%ri else 0;
-                }
-                when "**=" {
-                    l.a **= r.a;
-                }
-                when ">>=" { l.a >>= r.a;}
-                when "<<=" { l.a <<= r.a;}
+                when "+="  { l.a += r.a; }
+                when "-="  { l.a -= r.a; }
+                when "*="  { l.a *= r.a; }
+                when "//=" { l.a = doIntegralFloorDivOp(l.a, r.a); }//floordiv
+                when "%="  { l.a = doIntegralModOp(l.a, r.a); }
+                when "**=" { l.a **= r.a; }
+                when ">>=" { l.a >>= r.a; }
+                when "<<=" { l.a <<= r.a; }
                 otherwise do return MsgTuple.error(nie);
             }
         }
