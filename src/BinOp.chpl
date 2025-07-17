@@ -245,27 +245,13 @@ module BinOp
     else if etype == real(32) || etype == real(64) {
 
       select op {
-        when "*" { e = (l.a: etype * r.a: etype): etype; }
-        when "+" { e = (l.a: etype + r.a: etype): etype; }
-        when "-" { e = (l.a: etype - r.a: etype): etype; }
-        when "/" { e = (l.a: etype / r.a: etype): etype; }
-        when "%" {
-          // ref ea = e;
-          // ref la = l.a;
-          // ref ra = r.a;
-          // [(ei,li,ri) in zip(ea,la,ra)] ei = modHelper(li: etype, ri: etype): etype;
-          e = modHelper(l.a: etype, r.a: etype): etype;
-        }
-        when "//" {
-          // ref ea = e;
-          // ref la = l.a;
-          // ref ra = r.a;
-          // [(ei,li,ri) in zip(ea,la,ra)] ei = floorDivisionHelper(li: etype, ri: etype): etype;
-          e = floorDivisionHelper(l.a: etype, r.a: etype): etype;
-        }
-        when "**" {
-          e = ((l.a: etype) ** (r.a: etype)): etype;
-        }
+        when "*"  { e = (l.a: etype * r.a: etype): etype; }
+        when "+"  { e = (l.a: etype + r.a: etype): etype; }
+        when "-"  { e = (l.a: etype - r.a: etype): etype; }
+        when "/"  { e = (l.a: etype / r.a: etype): etype; }
+        when "%"  { e = modHelper(l.a: etype, r.a: etype): etype; }
+        when "//" { e = floorDivisionHelper(l.a: etype, r.a: etype): etype; }
+        when "**" { e = ((l.a: etype) ** (r.a: etype)): etype; }
         otherwise do return MsgTuple.error(nie);
       }
       return st.insert(new shared SymEntry(e));
@@ -386,25 +372,13 @@ module BinOp
     else if etype == real(32) || etype == real(64) {
 
       select op {
-        when "*" { e = (l.a: etype * val: etype): etype; }
-        when "+" { e = (l.a: etype + val: etype): etype; }
-        when "-" { e = (l.a: etype - val: etype): etype; }
-        when "/" { e = (l.a: etype / val: etype): etype; }
-        when "%" {
-          // ref ea = e;
-          // ref la = l.a;
-          // [(ei,li) in zip(ea,la)] ei = modHelper(li: etype, val: etype): etype;
-          e = modHelper(l.a: etype, val: etype): etype;
-        }
-        when "//" {
-          // ref ea = e;
-          // ref la = l.a;
-          // [(ei,li) in zip(ea,la)] ei = floorDivisionHelper(li: etype, val: etype): etype;
-          e = floorDivisionHelper(l.a: etype, val: etype): etype;
-        }
-        when "**" {
-          e = ((l.a: etype) ** (val: etype)): etype;
-        }
+        when "*"  { e = (l.a: etype * val: etype): etype; }
+        when "+"  { e = (l.a: etype + val: etype): etype; }
+        when "-"  { e = (l.a: etype - val: etype): etype; }
+        when "/"  { e = (l.a: etype / val: etype): etype; }
+        when "%"  { e = modHelper(l.a: etype, val: etype): etype; }
+        when "//" { e = floorDivisionHelper(l.a: etype, val: etype): etype; }
+        when "**" { e = ((l.a: etype) ** (val: etype)): etype; }
         otherwise do return MsgTuple.error(nie);
       }
       return st.insert(new shared SymEntry(e));
@@ -519,25 +493,13 @@ module BinOp
     else if etype == real(32) || etype == real(64) {
 
       select op {
-        when "*" { e = (val: etype * r.a: etype): etype; }
-        when "+" { e = (val: etype + r.a: etype): etype; }
-        when "-" { e = (val: etype - r.a: etype): etype; }
-        when "/" { e = (val: etype / r.a: etype): etype; }
-        when "%" {
-          // ref ea = e;
-          // ref ra = r.a;
-          // [(ei,ri) in zip(ea,ra)] ei = modHelper(val: etype, ri: etype): etype;
-          e = modHelper(val: etype, r.a: etype): etype;
-        }
-        when "//" {
-          // ref ea = e;
-          // ref ra = r.a;
-          // [(ei,ri) in zip(ea,ra)] ei = floorDivisionHelper(val: etype, ri: etype): etype;
-          e = floorDivisionHelper(val: etype, r.a: etype): etype;
-        }
-        when "**" {
-          e = ((val: etype) ** (r.a: etype)): etype;
-        }
+        when "*"  { e = (val: etype * r.a: etype): etype; }
+        when "+"  { e = (val: etype + r.a: etype): etype; }
+        when "-"  { e = (val: etype - r.a: etype): etype; }
+        when "/"  { e = (val: etype / r.a: etype): etype; }
+        when "%"  { e = modHelper(val: etype, r.a: etype): etype; }
+        when "//" { e = floorDivisionHelper(val: etype, r.a: etype): etype; }
+        when "**" { e = ((val: etype) ** (r.a: etype)): etype; }
         otherwise do return MsgTuple.error(nie);
       }
       return st.insert(new shared SymEntry(e));

@@ -464,67 +464,37 @@ module OperatorMsg
         }
         else if binop_dtype_a == real && binop_dtype_b == int  {
             select op {
-                when "+=" {l.a += r.a;}
-                when "-=" {l.a -= r.a;}
-                when "*=" {l.a *= r.a;}
-                when "/=" {l.a /= r.a:real;} //truediv
-                when "//=" { //floordiv
-                    l.a = floorDivisionHelper(l.a, r.a);
-                    // ref la = l.a;
-                    // ref ra = r.a;
-                    // [(li,ri) in zip(la,ra)] li = floorDivisionHelper(li, ri);
-                }
-                when "**=" { l.a **= r.a; }
-                when "%=" {
-                    l.a = modHelper(l.a, r.a);
-                    // ref la = l.a;
-                    // ref ra = r.a;
-                    // [(li,ri) in zip(la,ra)] li = modHelper(li, ri);
-                }
+                when "+="  {l.a += r.a;}
+                when "-="  {l.a -= r.a;}
+                when "*="  {l.a *= r.a;}
+                when "/="  {l.a /= r.a:real;} //truediv
+                when "//=" {l.a = floorDivisionHelper(l.a, r.a);} //floordiv
+                when "**=" {l.a **= r.a; }
+                when "%="  {l.a = modHelper(l.a, r.a);}
                 otherwise do return MsgTuple.error(nie);
             }
         }
         else if binop_dtype_a == real && binop_dtype_b == uint  {
             select op {
-                when "+=" {l.a += r.a;}
-                when "-=" {l.a -= r.a;}
-                when "*=" {l.a *= r.a;}
-                when "/=" {l.a /= r.a:real;} //truediv
-                when "//=" { //floordiv
-                    l.a = floorDivisionHelper(l.a, r.a);
-                    // ref la = l.a;
-                    // ref ra = r.a;
-                    // [(li,ri) in zip(la,ra)] li = floorDivisionHelper(li, ri);
-                }
-                when "**=" { l.a **= r.a; }
-                when "%=" {
-                    l.a = modHelper(l.a, r.a);
-                    // ref la = l.a;
-                    // ref ra = r.a;
-                    // [(li,ri) in zip(la,ra)] li = modHelper(li, ri);
-                }
+                when "+="  {l.a += r.a;}
+                when "-="  {l.a -= r.a;}
+                when "*="  {l.a *= r.a;}
+                when "/="  {l.a /= r.a:real;} //truediv
+                when "//=" {l.a = floorDivisionHelper(l.a, r.a);} //floordiv
+                when "**=" {l.a **= r.a; }
+                when "%="  {l.a = modHelper(l.a, r.a);}
                 otherwise do return MsgTuple.error(nie);
             }
         }
         else if binop_dtype_a == real && binop_dtype_b == real  {
             select op {
-                when "+=" {l.a += r.a;}
-                when "-=" {l.a -= r.a;}
-                when "*=" {l.a *= r.a;}
-                when "/=" {l.a /= r.a;}//truediv
-                when "//=" { //floordiv
-                    l.a  = floorDivisionHelper(l.a, r.a);
-                    // ref la = l.a;
-                    // ref ra = r.a;
-                    // [(li,ri) in zip(la,ra)] li = floorDivisionHelper(li, ri);
-                }
-                when "**=" { l.a **= r.a; }
-                when "%=" {
-                    l.a = modHelper(l.a, r.a);
-                    // ref la = l.a;
-                    // ref ra = r.a;
-                    // [(li,ri) in zip(la,ra)] li = modHelper(li, ri);
-                }
+                when "+="  {l.a += r.a;}
+                when "-="  {l.a -= r.a;}
+                when "*="  {l.a *= r.a;}
+                when "/="  {l.a /= r.a;}//truediv
+                when "//=" {l.a = floorDivisionHelper(l.a, r.a);}//floordiv
+                when "**=" {l.a **= r.a; }
+                when "%="  {l.a = modHelper(l.a, r.a);}
                 otherwise do return MsgTuple.error(nie);
             }
         }
@@ -947,62 +917,36 @@ module OperatorMsg
         }
         else if binop_dtype_a == real && binop_dtype_b == int  {
             select op {
-                when "+=" {l.a += val;}
-                when "-=" {l.a -= val;}
-                when "*=" {l.a *= val;}
-                when "/=" {l.a /= val:real;} //truediv
-                when "//=" { //floordiv
-                    l.a = floorDivisionHelper(l.a, val);
-                    // ref la = l.a;
-                    // [li in la] li = floorDivisionHelper(li, val);
-                }
-                when "**=" { l.a **= val; }
-                when "%=" {
-                    l.a = modHelper(l.a, val);
-                    // ref la = l.a;
-                    // [li in la] li = modHelper(li, val);
-                }
+                when "+="  {l.a += val;}
+                when "-="  {l.a -= val;}
+                when "*="  {l.a *= val;}
+                when "/="  {l.a /= val:real;} //truediv
+                when "//=" {l.a = floorDivisionHelper(l.a, val);} //floordiv
+                when "**=" {l.a **= val; }
+                when "%="  {l.a = modHelper(l.a, val);}
                 otherwise do return MsgTuple.error(nie);
             }
         }
         else if binop_dtype_a == real && binop_dtype_b == uint  {
             select op {
-                when "+=" { l.a += val; }
-                when "-=" { l.a -= val; }
-                when "*=" { l.a *= val; }
-                when "//=" {
-                    l.a = floorDivisionHelper(l.a, val);
-                    // ref la = l.a;
-                    // [li in la] li = floorDivisionHelper(li, val);
-                }//floordiv
-                when "**=" {
-                    l.a **= val;
-                }
-                when "%=" {
-                    l.a = modHelper(l.a, val);
-                    // ref la = l.a;
-                    // [li in la] li = modHelper(li, val);
-                }
+                when "+="  { l.a += val; }
+                when "-="  { l.a -= val; }
+                when "*="  { l.a *= val; }
+                when "//=" { l.a = floorDivisionHelper(l.a, val); }//floordiv
+                when "**=" { l.a **= val; }
+                when "%="  { l.a = modHelper(l.a, val); }
                 otherwise do return MsgTuple.error(nie);
             }
         }
         else if binop_dtype_a == real && binop_dtype_b == real  {
             select op {
-                when "+=" {l.a += val;}
-                when "-=" {l.a -= val;}
-                when "*=" {l.a *= val;}
-                when "/=" {l.a /= val;}//truediv
-                when "//=" { //floordiv
-                    l.a = floorDivisionHelper(l.a, val);
-                    // ref la = l.a;
-                    // [li in la] li = floorDivisionHelper(li, val);
-                }
-                when "**=" { l.a **= val; }
-                when "%=" {
-                    l.a = modHelper(l.a, val);
-                    // ref la = l.a;
-                    // [li in la] li = modHelper(li, val);
-                }
+                when "+="  {l.a += val;}
+                when "-="  {l.a -= val;}
+                when "*="  {l.a *= val;}
+                when "/="  {l.a /= val;}//truediv
+                when "//=" {l.a = floorDivisionHelper(l.a, val);} //floordiv
+                when "**=" {l.a **= val; }
+                when "%="  {l.a = modHelper(l.a, val);}
                 otherwise do return MsgTuple.error(nie);
             }
         }
