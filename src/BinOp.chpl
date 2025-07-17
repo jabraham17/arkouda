@@ -143,6 +143,20 @@ module BinOp
     return true;
   }
 
+  // This function only works with integral/bool types
+  proc doUnorderedOp(type etype, op: string, ref e: [] etype,
+                      l: [], r /*: [] integral OR integral*/): bool {
+    select op {
+      when "|" { e = (l | r) : etype; }
+      when "&" { e = (l & r) : etype; }
+      when "^" { e = (l ^ r) : etype; }
+      when "+" { e = (l + r) : etype; }
+      when "*" { e = (l * r) : etype; }
+      otherwise do return false;
+    }
+    return true;
+  }
+
   /*
   Generic function to execute a binary operation on pdarray entries 
   in the symbol table
@@ -259,46 +273,43 @@ module BinOp
 
     else {
 
-      select op {
-        when "|" { e = (l.a | r.a): etype; }
-        when "&" { e = (l.a & r.a): etype; }
-        when "*" { e = (l.a * r.a): etype; }
-        when "^" { e = (l.a ^ r.a): etype; }
-        when "+" { e = (l.a + r.a): etype; }
-        when "-" { e = (l.a - r.a): etype; }
-        when "/" { e = (l.a: etype) / (r.a: etype); }
-        when "%" {
-          ref ea = e;
-          ref la = l.a;
-          ref ra = r.a;
-          [(ei,li,ri) in zip(ea,la,ra)] ei = if ri != 0 then li%ri else 0;
+      if !doUnorderedOp(etype, op, e, l.a, r.a) {
+        select op {
+          when "-" { e = (l.a - r.a): etype; }
+          when "/" { e = (l.a: etype) / (r.a: etype); }
+          when "%" {
+            ref ea = e;
+            ref la = l.a;
+            ref ra = r.a;
+            [(ei,li,ri) in zip(ea,la,ra)] ei = if ri != 0 then li%ri else 0;
+          }
+          when "//" {
+            ref ea = e;
+            ref la = l.a;
+            ref ra = r.a;
+            [(ei,li,ri) in zip(ea,la,ra)] ei = if ri != 0 then (li/ri): etype else 0: etype;
+          }
+          when "**" {
+            if || reduce (r.a<0)
+              then return MsgTuple.error("Attempt to exponentiate base of type Int or UInt to negative exponent");
+            e = (l.a: etype) ** (r.a: etype);
+          }
+          when "<<" {
+            ref ea = e;
+            ref la = l.a;
+            ref ra = r.a;
+            [(ei,li,ri) in zip(ea,la,ra)] if (0 <= ri && ri < numBits(etype)) then ei = ((li: etype) << (ri: etype)): etype;
+          }
+          when ">>" {
+            ref ea = e;
+            ref la = l.a;
+            ref ra = r.a;
+            [(ei,li,ri) in zip(ea,la,ra)] if (0 <= ri && ri < numBits(etype)) then ei = ((li: etype) >> (ri: etype)): etype;
+          }
+          when "<<<" { e = rotl(l.a: etype, r.a: etype); }
+          when ">>>" { e = rotr(l.a: etype, r.a: etype); }
+          otherwise do return MsgTuple.error(nie);
         }
-        when "//" {
-          ref ea = e;
-          ref la = l.a;
-          ref ra = r.a;
-          [(ei,li,ri) in zip(ea,la,ra)] ei = if ri != 0 then (li/ri): etype else 0: etype;
-        }
-        when "**" {
-          if || reduce (r.a<0)
-            then return MsgTuple.error("Attempt to exponentiate base of type Int or UInt to negative exponent");
-          e = (l.a: etype) ** (r.a: etype);
-        }
-        when "<<" {
-          ref ea = e;
-          ref la = l.a;
-          ref ra = r.a;
-          [(ei,li,ri) in zip(ea,la,ra)] if (0 <= ri && ri < numBits(etype)) then ei = ((li: etype) << (ri: etype)): etype;
-        }
-        when ">>" {
-          ref ea = e;
-          ref la = l.a;
-          ref ra = r.a;
-          [(ei,li,ri) in zip(ea,la,ra)] if (0 <= ri && ri < numBits(etype)) then ei = ((li: etype) >> (ri: etype)): etype;
-        }
-        when "<<<" { e = rotl(l.a: etype, r.a: etype); }
-        when ">>>" { e = rotr(l.a: etype, r.a: etype); }
-        otherwise do return MsgTuple.error(nie);
       }
       return st.insert(new shared SymEntry(e));
     }
@@ -399,42 +410,39 @@ module BinOp
 
     else {
 
-      select op {
-        when "|" { e = (l.a | val): etype; }
-        when "&" { e = (l.a & val): etype; }
-        when "*" { e = (l.a * val): etype; }
-        when "^" { e = (l.a ^ val): etype; }
-        when "+" { e = (l.a + val): etype; }
-        when "-" { e = (l.a - val): etype; }
-        when "/" { e = (l.a: etype) / (val: etype); }
-        when "%" {
-          ref ea = e;
-          ref la = l.a;
-          [(ei,li) in zip(ea,la)] ei = if val != 0 then li%val else 0;
+      if !doUnorderedOp(etype, op, e, l.a, val:etype) {
+        select op {
+          when "-" { e = (l.a - val): etype; }
+          when "/" { e = (l.a: etype) / (val: etype); }
+          when "%" {
+            ref ea = e;
+            ref la = l.a;
+            [(ei,li) in zip(ea,la)] ei = if val != 0 then li%val else 0;
+          }
+          when "//" {
+            ref ea = e;
+            ref la = l.a;
+            [(ei,li) in zip(ea,la)] ei = if val != 0 then (li/val): etype else 0: etype;
+          }
+          when "**" {
+            if val < 0
+              then return MsgTuple.error("Attempt to exponentiate base of type Int or UInt to negative exponent");
+            e = (l.a: etype) ** (val: etype);
+          }
+          when "<<" {
+            ref ea = e;
+            ref la = l.a;
+            [(ei,li) in zip(ea,la)] if (0 <= val && val < numBits(etype)) then ei = ((li: etype) << (val: etype)): etype;
+          }
+          when ">>" {
+            ref ea = e;
+            ref la = l.a;
+            [(ei,li) in zip(ea,la)] if (0 <= val && val < numBits(etype)) then ei = ((li: etype) >> (val: etype)): etype;
+          }
+          when "<<<" { e = rotl(l.a: etype, val: etype); }
+          when ">>>" { e = rotr(l.a: etype, val: etype); }
+          otherwise do return MsgTuple.error(nie);
         }
-        when "//" {
-          ref ea = e;
-          ref la = l.a;
-          [(ei,li) in zip(ea,la)] ei = if val != 0 then (li/val): etype else 0: etype;
-        }
-        when "**" {
-          if val < 0
-            then return MsgTuple.error("Attempt to exponentiate base of type Int or UInt to negative exponent");
-          e = (l.a: etype) ** (val: etype);
-        }
-        when "<<" {
-          ref ea = e;
-          ref la = l.a;
-          [(ei,li) in zip(ea,la)] if (0 <= val && val < numBits(etype)) then ei = ((li: etype) << (val: etype)): etype;
-        }
-        when ">>" {
-          ref ea = e;
-          ref la = l.a;
-          [(ei,li) in zip(ea,la)] if (0 <= val && val < numBits(etype)) then ei = ((li: etype) >> (val: etype)): etype;
-        }
-        when "<<<" { e = rotl(l.a: etype, val: etype); }
-        when ">>>" { e = rotr(l.a: etype, val: etype); }
-        otherwise do return MsgTuple.error(nie);
       }
       return st.insert(new shared SymEntry(e));
     }
@@ -532,43 +540,39 @@ module BinOp
     }
 
     else {
-
-      select op {
-        when "|" { e = (val | r.a): etype; }
-        when "&" { e = (val & r.a): etype; }
-        when "*" { e = (val * r.a): etype; }
-        when "^" { e = (val ^ r.a): etype; }
-        when "+" { e = (val + r.a): etype; }
-        when "-" { e = (val - r.a): etype; }
-        when "/" { e = (val: etype) / (r.a: etype); }
-        when "%" {
-          ref ea = e;
-          ref ra = r.a;
-          [(ei,ri) in zip(ea,ra)] ei = if ri != 0 then val%ri else 0;
+      if !doUnorderedOp(etype, op, e, r.a, val:etype) {
+        select op {
+          when "-" { e = (val - r.a): etype; }
+          when "/" { e = (val: etype) / (r.a: etype); }
+          when "%" {
+            ref ea = e;
+            ref ra = r.a;
+            [(ei,ri) in zip(ea,ra)] ei = if ri != 0 then val%ri else 0;
+          }
+          when "//" {
+            ref ea = e;
+            ref ra = r.a;
+            [(ei,ri) in zip(ea,ra)] ei = if ri != 0 then (val/ri): etype else 0: etype;
+          }
+          when "**" {
+            if || reduce (r.a<0)
+              then return MsgTuple.error("Attempt to exponentiate base of type Int or UInt to negative exponent");
+            e = (val: etype) ** (r.a: etype);
+          }
+          when "<<" {
+            ref ea = e;
+            ref ra = r.a;
+            [(ei,ri) in zip(ea,ra)] if (0 <= ri && ri < numBits(etype)) then ei = ((val: etype) << (ri: etype)): etype;
+          }
+          when ">>" {
+            ref ea = e;
+            ref ra = r.a;
+            [(ei,ri) in zip(ea,ra)] if (0 <= ri && ri < numBits(etype)) then ei = ((val: etype) >> (ri: etype)): etype;
+          }
+          when "<<<" { e = rotl(val: etype, r.a: etype); }
+          when ">>>" { e = rotr(val: etype, r.a: etype); }
+          otherwise do return MsgTuple.error(nie);
         }
-        when "//" {
-          ref ea = e;
-          ref ra = r.a;
-          [(ei,ri) in zip(ea,ra)] ei = if ri != 0 then (val/ri): etype else 0: etype;
-        }
-        when "**" {
-          if || reduce (r.a<0)
-            then return MsgTuple.error("Attempt to exponentiate base of type Int or UInt to negative exponent");
-          e = (val: etype) ** (r.a: etype);
-        }
-        when "<<" {
-          ref ea = e;
-          ref ra = r.a;
-          [(ei,ri) in zip(ea,ra)] if (0 <= ri && ri < numBits(etype)) then ei = ((val: etype) << (ri: etype)): etype;
-        }
-        when ">>" {
-          ref ea = e;
-          ref ra = r.a;
-          [(ei,ri) in zip(ea,ra)] if (0 <= ri && ri < numBits(etype)) then ei = ((val: etype) >> (ri: etype)): etype;
-        }
-        when "<<<" { e = rotl(val: etype, r.a: etype); }
-        when ">>>" { e = rotr(val: etype, r.a: etype); }
-        otherwise do return MsgTuple.error(nie);
       }
       return st.insert(new shared SymEntry(e));
     }
