@@ -16,83 +16,83 @@ module BinOp
   const omLogger = new Logger(logLevel, logChannel);
 
   proc splitType(type dtype) param : int {
-      // 0 -> bool, 1 -> uint, 2 -> int, 3 -> real
+    // 0 -> bool, 1 -> uint, 2 -> int, 3 -> real
 
-      if dtype == bool then return 0;
-      else if dtype == uint(8) then return 1;
-      else if dtype == uint(16) then return 1;
-      else if dtype == uint(32) then return 1;
-      else if dtype == uint(64) then return 1;
-      else if dtype == int(8) then return 2;
-      else if dtype == int(16) then return 2;
-      else if dtype == int(32) then return 2;
-      else if dtype == int(64) then return 2;
-      else if dtype == real(32) then return 3;
-      else if dtype == real(64) then return 3;
-      else return 0;
+    if dtype == bool then return 0;
+    else if dtype == uint(8) then return 1;
+    else if dtype == uint(16) then return 1;
+    else if dtype == uint(32) then return 1;
+    else if dtype == uint(64) then return 1;
+    else if dtype == int(8) then return 2;
+    else if dtype == int(16) then return 2;
+    else if dtype == int(32) then return 2;
+    else if dtype == int(64) then return 2;
+    else if dtype == real(32) then return 3;
+    else if dtype == real(64) then return 3;
+    else return 0;
 
+  }
+
+  proc mySafeCast(type dtype1, type dtype2) type {
+    param typeKind1 = splitType(dtype1);
+    param bitSize1 = if dtype1 == bool then 8 else numBits(dtype1);
+    param typeKind2 = splitType(dtype2);
+    param bitSize2 = if dtype2 == bool then 8 else numBits(dtype2);
+
+    if typeKind1 == 2 && typeKind2 == 1 && bitSize1 <= bitSize2 {
+      select bitSize2 {
+        when 64 { return real(64); }
+        when 32 { return int(64); }
+        when 16 { return int(32); }
+        when 8 { return int(16); }
+      }
     }
 
-    proc mySafeCast(type dtype1, type dtype2) type {
-      param typeKind1 = splitType(dtype1);
-      param bitSize1 = if dtype1 == bool then 8 else numBits(dtype1);
-      param typeKind2 = splitType(dtype2);
-      param bitSize2 = if dtype2 == bool then 8 else numBits(dtype2);
-
-      if typeKind1 == 2 && typeKind2 == 1 && bitSize1 <= bitSize2 {
-        select bitSize2 {
-          when 64 { return real(64); }
-          when 32 { return int(64); }
-          when 16 { return int(32); }
-          when 8 { return int(16); }
-        }
+    if typeKind2 == 2 && typeKind1 == 1 && bitSize2 <= bitSize1 {
+      select bitSize1 {
+        when 64 { return real(64); }
+        when 32 { return int(64); }
+        when 16 { return int(32); }
+        when 8 { return int(16); }
       }
-
-      if typeKind2 == 2 && typeKind1 == 1 && bitSize2 <= bitSize1 {
-        select bitSize1 {
-          when 64 { return real(64); }
-          when 32 { return int(64); }
-          when 16 { return int(32); }
-          when 8 { return int(16); }
-        }
-      }
-
-      if dtype1 == real(32) && (dtype2 == int(32) || dtype2 == uint(32)) {
-        return real(64);
-      }
-
-      if dtype2 == real(32) && (dtype1 == int(32) || dtype1 == uint(32)) {
-        return real(64);
-      }
-
-      if typeKind1 == 3 || typeKind2 == 3 {
-        select max(bitSize1, bitSize2) {
-          when 64 { return real(64); }
-          when 32 { return real(32); }
-        }
-      }
-
-      if typeKind1 == 2 || typeKind2 == 2 {
-        select max(bitSize1, bitSize2) {
-          when 64 { return int(64); }
-          when 32 { return int(32); }
-          when 16 { return int(16); }
-          when 8 { return int(8); }
-        }
-      }
-
-      if typeKind1 == 1 || typeKind2 == 1 {
-        select max(bitSize1, bitSize2) {
-          when 64 { return uint(64); }
-          when 32 { return uint(32); }
-          when 16 { return uint(16); }
-          when 8 { return uint(8); }
-        }
-      }
-
-      return bool;
-
     }
+
+    if dtype1 == real(32) && (dtype2 == int(32) || dtype2 == uint(32)) {
+      return real(64);
+    }
+
+    if dtype2 == real(32) && (dtype1 == int(32) || dtype1 == uint(32)) {
+      return real(64);
+    }
+
+    if typeKind1 == 3 || typeKind2 == 3 {
+      select max(bitSize1, bitSize2) {
+        when 64 { return real(64); }
+        when 32 { return real(32); }
+      }
+    }
+
+    if typeKind1 == 2 || typeKind2 == 2 {
+      select max(bitSize1, bitSize2) {
+        when 64 { return int(64); }
+        when 32 { return int(32); }
+        when 16 { return int(16); }
+        when 8 { return int(8); }
+      }
+    }
+
+    if typeKind1 == 1 || typeKind2 == 1 {
+      select max(bitSize1, bitSize2) {
+        when 64 { return uint(64); }
+        when 32 { return uint(32); }
+        when 16 { return uint(16); }
+        when 8 { return uint(8); }
+      }
+    }
+
+    return bool;
+
+  }
 
   /*
     Helper function to ensure that floor division cases are handled in accordance with numpy
