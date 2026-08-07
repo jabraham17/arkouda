@@ -883,6 +883,7 @@ def read_parquet(
     has_non_float_nulls: bool = False,
     null_handling: Optional[str] = None,
     fixed_len: int = -1,
+    batch_files: bool = False,
 ) -> Union[
     Mapping[
         str,
@@ -1082,9 +1083,17 @@ def read_parquet(
                     "has_non_float_nulls": has_non_float_nulls,
                     "null_handling": null_handling,
                     "fixed_len": fixed_len,
+                    "batch_files": batch_files,
                 },
             )
+            if batch_files:
+                reps = json.loads(rep_msg)  # See GenSymIO._buildReadAllMsgJson for json structure
+                for rep in reps.values():
+                    _parse_errors(rep, allow_errors)
+                return {f: _build_objects(rep) for f, rep in reps.items()}
         else:
+            if batch_files:
+                raise RuntimeError("batch_files is not supported when reading specific datasets")
             rep_msg = generic_msg(
                 cmd="readAllParquet",
                 args={

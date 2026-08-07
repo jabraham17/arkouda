@@ -150,7 +150,7 @@
         }
     }
 
-    proc buildReadAllMsgJson(rnames:list((string, ObjType, string)), allowErrors:bool, fileErrorCount:int, fileErrors:list(string), st: borrowed SymTab): string throws {
+    proc buildReadAllMsg(rnames:list((string, ObjType, string)), allowErrors:bool, fileErrorCount:int, fileErrors:list(string), st: borrowed SymTab): map(string, string) throws {
         var items: list(map(string, string));
 
         for rname in rnames {
@@ -189,6 +189,10 @@
             reply.add("file_error_count", fileErrorCount:string);
             reply.add("file_errors", formatJson(fileErrors));
         }
+        return reply;
+    }
+    proc buildReadAllMsgJson(rnames:list((string, ObjType, string)), allowErrors:bool, fileErrorCount:int, fileErrors:list(string), st: borrowed SymTab): string throws {
+        const reply = buildReadAllMsg(rnames, allowErrors, fileErrorCount, fileErrors, st);
         return formatJson(reply);
     }
 

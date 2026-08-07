@@ -925,53 +925,7 @@ module ParquetMsg {
     }
   }
 
-  proc readAllColsParquetMsg(cmd: string, msgArgs: borrowed MessageArgs,
-                             st: borrowed SymTab): MsgTuple throws {
-    var repMsg: string;
-    var tagData: bool = msgArgs.get("tag_data").getBoolValue();
-    var strictTypes: bool = msgArgs.get("strict_types").getBoolValue();
-
-    var fixedLen = msgArgs.get('fixed_len').getIntValue() + 1;
-
-    var allowErrors: bool = msgArgs.get("allow_errors").getBoolValue(); // default is false
-    var hasNonFloatNulls: bool = msgArgs.get("has_non_float_nulls").getBoolValue();
-    var nullHandlingArg: string = msgArgs.get("null_handling").getValue();
-
-    pqLogger.debug(getM(),getR(),getL(), "handled args");
-
-    if allowErrors {
-        pqLogger.warn(getM(), getR(), getL(), "Allowing file read errors");
-    }
-
-    var nullMode: NullMode;
-    select nullHandlingArg {
-      when "none" { nullMode = NullMode.noNulls; }
-      when "only floats" { nullMode = NullMode.onlyFloats; }
-      when "all" { nullMode = NullMode.all; }
-      otherwise { throw new NotImplementedError(
-          "null_handling=%s is not implemented "+
-          "in the server".format(nullHandlingArg), getL(), getR(), getM());
-      }
-    }
-
-    pqLogger.debug(getM(),getR(),getL(), "handled null");
-
-    var nfiles = msgArgs.get("filename_size").getIntValue();
-    var filelist: [0..#nfiles] string;
-
-    try {
-        filelist = msgArgs.get("filenames").getList(nfiles);
-    } catch {
-        // limit length of file names to 2000 chars
-        var n: int = 1000;
-        var jsonfiles = msgArgs.getValueOf("filenames");
-        var files: string = if jsonfiles.size > 2*n then jsonfiles[0..#n]+'...'+jsonfiles[jsonfiles.size-n..#n] else jsonfiles;
-        var errorMsg = "Could not decode json filenames via tempfile (%i files: %s)".format(nfiles, files);
-        pqLogger.error(getM(),getR(),getL(),errorMsg);
-        return new MsgTuple(errorMsg, MsgType.ERROR);
-    }
-
-    var Filenames = processFilelist(filelist);
+  inline proc readAllColsInner(cmd: string, msgArgs: borrowed MessageArgs, tagData: bool, fixedLen: int, allowErrors: bool, hasNonFloatNulls: bool, nullMode: NullMode, Filenames: [] string, ref err, st: borrowed SymTab): map(string, string) throws {
 
     
     var fileErrors: list(string);
@@ -1001,7 +955,10 @@ module ParquetMsg {
         pqLogger.error(getM(), getR(), getL(), fileErrorMsg);
         hadError = true;
 
-        if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
+        if !allowErrors {
+          err = new MsgTuple(fileErrorMsg, MsgType.ERROR);
+          return new map(string, string);
+        }
       }
 
       // This may need to be adjusted for this all-in-one approach
@@ -1069,13 +1026,106 @@ module ParquetMsg {
       if thrownError != nil then throw thrownError;
     }
     else {
+      pqLogger.debug(getM(),getR(),getL(), "doing unoptimized reads");
       // TODO this is a bad workaround
       // I want to refactor the core of the function we are calling and call
       // that core from here, but I have to gradually get there.
-      return readAllParquetMsg(cmd, msgArgs, st);
+
+      var ndsets = msgArgs.get("dset_size").getIntValue();
+      var dsetdom = {0..#ndsets};
+      var dsetlist: [dsetdom] string;
+
+      try {
+          dsetlist = msgArgs.get("dsets").getList(ndsets);
+      } catch {
+          // limit length of dataset names to 2000 chars
+          var n: int = 1000;
+          var jsondsets = msgArgs.getValueOf("dsets");
+          var dsets: string = if jsondsets.size > 2*n then jsondsets[0..#n]+'...'+jsondsets[jsondsets.size-n..#n] else jsondsets;
+          var errorMsg = "Could not decode json dataset names via tempfile (%i files: %s)".format(
+                                              ndsets, dsets);
+          pqLogger.error(getM(),getR(),getL(),errorMsg);
+          err = new MsgTuple(errorMsg, MsgType.ERROR);
+          return new map(string, string);
+      }
+
+      var dsetnames: [dsetdom] string;
+      dsetnames = dsetlist;
+      return readAllParquetInner(cmd, msgArgs, tagData, fixedLen, allowErrors, hasNonFloatNulls, Filenames, Filenames.domain, dsetdom, dsetnames, err, st);
     }
 
-    repMsg = buildReadAllMsgJson(rnames, false, 0, fileErrors, st);
+    const rep = buildReadAllMsg(rnames, false, 0, fileErrors, st);
+    return rep;
+  }
+
+  proc readAllColsParquetMsg(cmd: string, msgArgs: borrowed MessageArgs,
+                             st: borrowed SymTab): MsgTuple throws {
+    var repMsg: string;
+    var tagData: bool = msgArgs.get("tag_data").getBoolValue();
+    var strictTypes: bool = msgArgs.get("strict_types").getBoolValue();
+
+    var fixedLen = msgArgs.get('fixed_len').getIntValue() + 1;
+
+    var allowErrors: bool = msgArgs.get("allow_errors").getBoolValue(); // default is false
+    var hasNonFloatNulls: bool = msgArgs.get("has_non_float_nulls").getBoolValue();
+    var nullHandlingArg: string = msgArgs.get("null_handling").getValue();
+    const batchFiles: bool = msgArgs.get("batch_files").getBoolValue();
+
+    pqLogger.debug(getM(),getR(),getL(), "handled args");
+
+    if allowErrors {
+        pqLogger.warn(getM(), getR(), getL(), "Allowing file read errors");
+    }
+
+    var nullMode: NullMode;
+    select nullHandlingArg {
+      when "none" { nullMode = NullMode.noNulls; }
+      when "only floats" { nullMode = NullMode.onlyFloats; }
+      when "all" { nullMode = NullMode.all; }
+      otherwise { throw new NotImplementedError(
+          "null_handling=%s is not implemented "+
+          "in the server".format(nullHandlingArg), getL(), getR(), getM());
+      }
+    }
+
+    pqLogger.debug(getM(),getR(),getL(), "handled null");
+
+    var nfiles = msgArgs.get("filename_size").getIntValue();
+    var filelist: [0..#nfiles] string;
+
+    try {
+        filelist = msgArgs.get("filenames").getList(nfiles);
+    } catch {
+        // limit length of file names to 2000 chars
+        var n: int = 1000;
+        var jsonfiles = msgArgs.getValueOf("filenames");
+        var files: string = if jsonfiles.size > 2*n then jsonfiles[0..#n]+'...'+jsonfiles[jsonfiles.size-n..#n] else jsonfiles;
+        var errorMsg = "Could not decode json filenames via tempfile (%i files: %s)".format(nfiles, files);
+        pqLogger.error(getM(),getR(),getL(),errorMsg);
+        return new MsgTuple(errorMsg, MsgType.ERROR);
+    }
+
+    var Filenames = processFilelist(filelist);
+    if !batchFiles {
+      var err: MsgTuple;
+      const rep = readAllColsInner(cmd, msgArgs, tagData, fixedLen, allowErrors, hasNonFloatNulls, nullMode, Filenames, err, st);
+      if rep.isEmpty() then return err;
+      repMsg = formatJson(rep);
+    } else {
+      // var response: [Filenames.domain] map(string, string);
+      var response: map(string, map(string, string));
+      var errs: [Filenames.domain] MsgTuple;
+
+      for (err, F) in zip(errs, Filenames) {
+        pqLogger.debug(getM(),getR(),getL(),"reading file %s".format(F));
+        response[F] = readAllColsInner(cmd, msgArgs, tagData, fixedLen, allowErrors, hasNonFloatNulls, nullMode, [F], err, st);
+      }
+      for (r, err, F) in zip(response.values(), errs, Filenames) {
+        pqLogger.debug(getM(),getR(),getL(),"readAllColsInner returned for file %s: %?".format(F, r));
+        if r.isEmpty() then return err;
+      }
+      repMsg = formatJson(response);
+    }
     pqLogger.debug(getM(),getR(),getL(),repMsg);
     return new MsgTuple(repMsg,MsgType.NORMAL);
   }
@@ -1433,80 +1483,8 @@ module ParquetMsg {
       return se;
     }
   }
-
-
-  proc readAllParquetMsg(cmd: string, msgArgs: borrowed MessageArgs, st: borrowed SymTab): MsgTuple throws {
-    var repMsg: string;
-    var tagData: bool = msgArgs.get("tag_data").getBoolValue();
-    var strictTypes: bool = msgArgs.get("strict_types").getBoolValue();
-
-    var fixedLen = msgArgs.get('fixed_len').getIntValue() + 1;
-
-    var allowErrors: bool = msgArgs.get("allow_errors").getBoolValue(); // default is false
-    var hasNonFloatNulls: bool = msgArgs.get("has_non_float_nulls").getBoolValue();
-    if allowErrors {
-        pqLogger.warn(getM(), getR(), getL(), "Allowing file read errors");
-    }
-    
-    var ndsets = msgArgs.get("dset_size").getIntValue();
-    var nfiles = msgArgs.get("filename_size").getIntValue();
-    var dsetlist: [0..#ndsets] string;
-    var filelist: [0..#nfiles] string;
-
-    try {
-        dsetlist = msgArgs.get("dsets").getList(ndsets);
-    } catch {
-        // limit length of dataset names to 2000 chars
-        var n: int = 1000;
-        var jsondsets = msgArgs.getValueOf("dsets");
-        var dsets: string = if jsondsets.size > 2*n then jsondsets[0..#n]+'...'+jsondsets[jsondsets.size-n..#n] else jsondsets;
-        var errorMsg = "Could not decode json dataset names via tempfile (%i files: %s)".format(
-                                            ndsets, dsets);
-        pqLogger.error(getM(),getR(),getL(),errorMsg);
-        return new MsgTuple(errorMsg, MsgType.ERROR);
-    }
-
-    try {
-        filelist = msgArgs.get("filenames").getList(nfiles);
-    } catch {
-        // limit length of file names to 2000 chars
-        var n: int = 1000;
-        var jsonfiles = msgArgs.getValueOf("filenames");
-        var files: string = if jsonfiles.size > 2*n then jsonfiles[0..#n]+'...'+jsonfiles[jsonfiles.size-n..#n] else jsonfiles;
-        var errorMsg = "Could not decode json filenames via tempfile (%i files: %s)".format(nfiles, files);
-        pqLogger.error(getM(),getR(),getL(),errorMsg);
-        return new MsgTuple(errorMsg, MsgType.ERROR);
-    }
-
-    var dsetdom = dsetlist.domain;
-    var filedom = filelist.domain;
-    var dsetnames: [dsetdom] string;
-    var filenames: [filedom] string;
-    dsetnames = dsetlist;
-
-    if filelist.size == 1 {
-      if filelist[0].strip().size == 0 {
-          var errorMsg = "filelist was empty.";
-          pqLogger.error(getM(),getR(),getL(),errorMsg);
-          return new MsgTuple(errorMsg, MsgType.ERROR);
-      }
-      var tmp = glob(filelist[0]);
-      pqLogger.debug(getM(),getR(),getL(),
-                            "glob expanded %s to %i files".format(filelist[0], tmp.size));
-      if tmp.size == 0 {
-          var errorMsg = "The wildcarded filename %s either corresponds to files inaccessible to Arkouda or files of an invalid format".format(filelist[0]);
-          pqLogger.error(getM(),getR(),getL(),errorMsg);
-          return new MsgTuple(errorMsg, MsgType.ERROR);
-      }
-      // Glob returns filenames in weird order. Sort for consistency
-      sort(tmp);
-      filedom = tmp.domain;
-      filenames = tmp;
-    } else {
-        filenames = filelist;
-    }
-    
-    var fileErrors: list(string);
+  inline proc readAllParquetInner(cmd: string, msgArgs: borrowed MessageArgs, in tagData: bool, fixedLen: int, allowErrors: bool, hasNonFloatNulls: bool, filenames: [] string, filedom, dsetdom, dsetnames, ref err, st: borrowed SymTab): map(string, string) throws {
+        var fileErrors: list(string);
     var fileErrorCount:int = 0;
     var fileErrorMsg:string = "";
     var sizes: [filedom] int;
@@ -1527,7 +1505,10 @@ module ParquetMsg {
                 fileErrorMsg = "Other error in accessing file %s: %s".format(fname,e.message());
                 pqLogger.error(getM(),getR(),getL(),fileErrorMsg);
                 hadError = true;
-                if !allowErrors { return new MsgTuple(fileErrorMsg, MsgType.ERROR); }
+                if !allowErrors {
+                  err = new MsgTuple(fileErrorMsg, MsgType.ERROR);
+                  return new map(string, string);
+                }
             }
 
             // This may need to be adjusted for this all-in-one approach
@@ -1603,11 +1584,89 @@ module ParquetMsg {
         } else {
           var errorMsg = "DType %s not supported for Parquet reading".format(ty);
           pqLogger.error(getM(),getR(),getL(),errorMsg);
-          return new MsgTuple(errorMsg, MsgType.ERROR);
+          err = new MsgTuple(errorMsg, MsgType.ERROR);
+          return new map(string, string);
         }
     }
+    return buildReadAllMsg(rnames, false, 0, fileErrors, st);
+  }
 
-    repMsg = buildReadAllMsgJson(rnames, false, 0, fileErrors, st);
+  proc readAllParquetMsg(cmd: string, msgArgs: borrowed MessageArgs, st: borrowed SymTab): MsgTuple throws {
+    var repMsg: string;
+    var tagData: bool = msgArgs.get("tag_data").getBoolValue();
+    var strictTypes: bool = msgArgs.get("strict_types").getBoolValue();
+
+    var fixedLen = msgArgs.get('fixed_len').getIntValue() + 1;
+
+    var allowErrors: bool = msgArgs.get("allow_errors").getBoolValue(); // default is false
+    var hasNonFloatNulls: bool = msgArgs.get("has_non_float_nulls").getBoolValue();
+    if allowErrors {
+        pqLogger.warn(getM(), getR(), getL(), "Allowing file read errors");
+    }
+    
+    var ndsets = msgArgs.get("dset_size").getIntValue();
+    var nfiles = msgArgs.get("filename_size").getIntValue();
+    var dsetdom = {0..#ndsets};
+    var dsetlist: [dsetdom] string;
+    var filelist: [0..#nfiles] string;
+
+    try {
+        dsetlist = msgArgs.get("dsets").getList(ndsets);
+    } catch {
+        // limit length of dataset names to 2000 chars
+        var n: int = 1000;
+        var jsondsets = msgArgs.getValueOf("dsets");
+        var dsets: string = if jsondsets.size > 2*n then jsondsets[0..#n]+'...'+jsondsets[jsondsets.size-n..#n] else jsondsets;
+        var errorMsg = "Could not decode json dataset names via tempfile (%i files: %s)".format(
+                                            ndsets, dsets);
+        pqLogger.error(getM(),getR(),getL(),errorMsg);
+        return new MsgTuple(errorMsg, MsgType.ERROR);
+    }
+
+    try {
+        filelist = msgArgs.get("filenames").getList(nfiles);
+    } catch {
+        // limit length of file names to 2000 chars
+        var n: int = 1000;
+        var jsonfiles = msgArgs.getValueOf("filenames");
+        var files: string = if jsonfiles.size > 2*n then jsonfiles[0..#n]+'...'+jsonfiles[jsonfiles.size-n..#n] else jsonfiles;
+        var errorMsg = "Could not decode json filenames via tempfile (%i files: %s)".format(nfiles, files);
+        pqLogger.error(getM(),getR(),getL(),errorMsg);
+        return new MsgTuple(errorMsg, MsgType.ERROR);
+    }
+
+    var filedom = filelist.domain;
+    var dsetnames: [dsetdom] string;
+    var filenames: [filedom] string;
+    dsetnames = dsetlist;
+
+    if filelist.size == 1 {
+      if filelist[0].strip().size == 0 {
+          var errorMsg = "filelist was empty.";
+          pqLogger.error(getM(),getR(),getL(),errorMsg);
+          return new MsgTuple(errorMsg, MsgType.ERROR);
+      }
+      var tmp = glob(filelist[0]);
+      pqLogger.debug(getM(),getR(),getL(),
+                            "glob expanded %s to %i files".format(filelist[0], tmp.size));
+      if tmp.size == 0 {
+          var errorMsg = "The wildcarded filename %s either corresponds to files inaccessible to Arkouda or files of an invalid format".format(filelist[0]);
+          pqLogger.error(getM(),getR(),getL(),errorMsg);
+          return new MsgTuple(errorMsg, MsgType.ERROR);
+      }
+      // Glob returns filenames in weird order. Sort for consistency
+      sort(tmp);
+      filedom = tmp.domain;
+      filenames = tmp;
+    } else {
+        filenames = filelist;
+    }
+
+    var err: MsgTuple;
+    const rep = readAllParquetInner(cmd, msgArgs, tagData, fixedLen, allowErrors, hasNonFloatNulls, filenames, filedom, dsetdom, dsetnames, err, st);
+    if rep.isEmpty() then return err;
+
+    repMsg = formatJson(rep);
     pqLogger.debug(getM(),getR(),getL(),repMsg);
     return new MsgTuple(repMsg,MsgType.NORMAL);
   }
